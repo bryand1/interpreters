@@ -1,5 +1,5 @@
 WORD, EOF = 'WORD', 'EOF'
-QUOTE = '"'
+QUOTE, SPACE = '"', ' '
 
 
 class Token:
@@ -20,8 +20,6 @@ class Token:
 
 class Lexer:
 
-    PUNCTUATION = {':', '-', ';', '!', '?'}
-
     def __init__(self, text):
         self.text = text
         self.pos = 0
@@ -41,27 +39,21 @@ class Lexer:
         while self.current_char is not None and self.current_char.isspace():
             self.advance()
 
-    def skip_punctuation(self):
-        while self.current_char is not None and self.current_char in self.PUNCTUATION:
-            self.advance()
-
     def word(self):
-        s = ''
+        s = []
         while self.current_char is not None and not self.current_char.isspace():
-            s += self.current_char
+            s.append(self.current_char)
             self.advance()
         # TODO: Process the word, because it could have trailing punctuation
-        return s
+        return ''.join(s)
 
     def get_next_token(self):
         while self.current_char is not None:
             if self.current_char.isspace():
                 self.skip_whitespace()
-                continue
-            if self.current_char in self.PUNCTUATION:
-                self.skip_punctuation()
-                continue
+                return Token(SPACE, ' ')
             if self.current_char == QUOTE:
+                self.advance()
                 return Token(QUOTE, '"')
             if self.current_char.isalpha():
                 return Token(WORD, self.word())
@@ -73,7 +65,7 @@ class Interpreter:
 
     def __init__(self, lexer):
         self.lexer = lexer
-        self.current_token = None
+        self.current_token = self.lexer.get_next_token()
 
     def error(self):
         raise Exception('Invalid syntax')
@@ -85,8 +77,29 @@ class Interpreter:
             self.error()
 
     def term(self):
-        pass
+        token = self.current_token
+        if token.type == WORD:
+            self.eat(WORD)
+            return token.value
+        elif token.type == QUOTE:
+            self.eat(QUOTE)
+            result = self.expr()
+            self.eat(QUOTE)
+            return result
 
     def expr(self):
-        pass
+        s = [self.term()]
 
+        while self.current_token.type == SPACE:
+            self.eat(SPACE)
+            s += [self.term()]
+
+        return s
+
+
+if __name__ == '__main__':
+    h1 = 'Apple stock reaches one trillion dollars'
+    lexer = Lexer(h1)
+    interpreter = Interpreter(lexer)
+    result = interpreter.expr()
+    print(result)
