@@ -1,5 +1,5 @@
 WORD, EOF = 'WORD', 'EOF'
-QUOTE, SPACE = '"', ' '
+QUOTE_OPEN, QUOTE_CLOSE, SPACE = 'QUOTE_OPEN', 'QUOTE_CLOSE', 'SPACE'
 
 
 class Token:
@@ -41,7 +41,9 @@ class Lexer:
 
     def word(self):
         s = []
-        while self.current_char is not None and not self.current_char.isspace():
+        while self.current_char is not None \
+                and not self.current_char.isspace() \
+                and self.current_char != '”':
             s.append(self.current_char)
             self.advance()
         # TODO: Process the word, because it could have trailing punctuation
@@ -52,9 +54,12 @@ class Lexer:
             if self.current_char.isspace():
                 self.skip_whitespace()
                 return Token(SPACE, ' ')
-            if self.current_char == QUOTE:
+            if self.current_char == '“':
                 self.advance()
-                return Token(QUOTE, '"')
+                return Token(QUOTE_OPEN, '“')
+            if self.current_char == "”":
+                self.advance()
+                return Token(QUOTE_CLOSE, "”")
             if self.current_char.isalpha():
                 return Token(WORD, self.word())
             self.error()
@@ -81,10 +86,10 @@ class Interpreter:
         if token.type == WORD:
             self.eat(WORD)
             return token.value
-        elif token.type == QUOTE:
-            self.eat(QUOTE)
+        elif token.type == QUOTE_OPEN:
+            self.eat(QUOTE_OPEN)
             result = self.expr()
-            self.eat(QUOTE)
+            self.eat(QUOTE_CLOSE)
             return result
 
     def expr(self):
@@ -98,7 +103,7 @@ class Interpreter:
 
 
 if __name__ == '__main__':
-    h1 = 'Apple stock reaches one trillion dollars'
+    h1 = 'Tesla ends flirtation with going private as Elon Musk cites belief that company is “better off”'
     lexer = Lexer(h1)
     interpreter = Interpreter(lexer)
     result = interpreter.expr()
